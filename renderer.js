@@ -37,6 +37,21 @@ window.addEventListener('DOMContentLoaded', () => {
             alert('Enhanced text copied to clipboard');
         });
     }
+    const resetBtn = document.getElementById('resetButton');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            document.getElementById('originalText').value = '';
+            document.getElementById('enhancedText').value = '';
+            updateTokenCount();
+        });
+    }
+
+    const closeBtn = document.getElementById('closeBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            ipcRenderer.send('close-main-window');
+        });
+    }
 });
 
 // Listen for text selection from main process
@@ -109,8 +124,8 @@ async function acceptChanges() {
         
         // Note: Pasting will use system paste after close
         
-        // Close the window
-        window.close();
+        // Hide the window via main process
+        ipcRenderer.send('close-main-window');
     } catch (error) {
         console.error('Error accepting changes:', error);
         alert('Error accepting changes. Please try again.');
@@ -139,31 +154,13 @@ function updateTokenCount() {
     if (tokenEl) tokenEl.innerText = `Tokens: ${count}`;
 }
 
-// Display provider, model, and cost info
+// Display provider and model info
 async function showConfigInfo() {
     try {
         const cfg = await ipcRenderer.invoke('get-llm-config');
-        let costInfo = '';
-        if (cfg.provider === 'openai') {
-            // Pricing in USD per 1K tokens
-            const pricing = {
-                'gpt-3.5-turbo': { input: 0.0015, output: 0.002 },
-                'gpt-4': { input: 0.03, output: 0.06 }
-            };
-            const price = pricing[cfg.model] || null;
-            if (price) {
-                costInfo = `OpenAI ${cfg.model} pricing: $${price.input}/1K input, $${price.output}/1K output`;
-            } else {
-                costInfo = `OpenAI ${cfg.model} pricing: See OpenAI docs`;
-            }
-        } else if (cfg.provider === 'ollama' || cfg.provider === 'lmstudio') {
-            costInfo = 'Local model, no per-query cost';
-        } else {
-            costInfo = '';
-        }
         const infoEl = document.getElementById('configInfo');
         if (infoEl) {
-            infoEl.innerText = `Provider: ${cfg.provider} | Model: ${cfg.model}${costInfo ? ' | ' + costInfo : ''}`;
+            infoEl.innerText = `Provider: ${cfg.provider} | Model: ${cfg.model}`;
         }
     } catch (err) {
         console.error('Error fetching config for display:', err);

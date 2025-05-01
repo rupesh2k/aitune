@@ -33,22 +33,32 @@ let iconWindow = null;
 let lastClip = clipboard.readText();
 
 function createWindow() {
+  // Determine fixed bar dimensions and center horizontally
+  const { width: screenWidth } = screen.getPrimaryDisplay().workAreaSize;
+  const barWidth = 760;
+  const barHeight = 450;
   mainWindow = new BrowserWindow({
-    width: 600,
-    height: 400,
+    x: Math.round((screenWidth - barWidth) / 2),
+    y: 0,
+    width: barWidth,
+    height: barHeight,
     show: false,
     frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    alwaysOnTop: true,
+    skipTaskbar: true,
     resizable: false,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      enableRemoteModule: true
     }
   });
 
   mainWindow.loadFile('popup.html');
 
-  // Open DevTools for debugging
-  mainWindow.webContents.openDevTools({ mode: 'detach' });
+  // mainWindow.webContents.openDevTools({ mode: 'detach' }); // removed by default to prevent DevTools console errors
 
   // Show a context menu with 'Fix with AI' on right-click
   /*
@@ -246,6 +256,13 @@ setInterval(async () => {
     }
   } catch (e) { /* ignore read errors */ }
 }, 500);
+
+// Listen for close requests from the renderer
+ipcMain.on('close-main-window', () => {
+  if (mainWindow) {
+    mainWindow.hide();
+  }
+});
 
 app.whenReady().then(() => {
   createWindow();
