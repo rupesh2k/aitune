@@ -25,6 +25,18 @@ window.addEventListener('DOMContentLoaded', () => {
     // Bind input event on original text to update token count
     const originalEl = document.getElementById('originalText');
     originalEl.addEventListener('input', updateTokenCount);
+
+    // Display provider, model, and cost info
+    showConfigInfo();
+
+    const copyEnhancedBtn = document.getElementById('copyEnhancedBtn');
+    if (copyEnhancedBtn) {
+        copyEnhancedBtn.addEventListener('click', () => {
+            const text = document.getElementById('enhancedText').value;
+            clipboard.writeText(text);
+            alert('Enhanced text copied to clipboard');
+        });
+    }
 });
 
 // Listen for text selection from main process
@@ -52,6 +64,13 @@ ipcRenderer.on('enhance-text-error', (event, errorMsg) => {
     alert(`Error enhancing text: ${errorMsg}`);
 });
 
+// After other ipcRenderer.on calls
+/*
+ipcRenderer.on('trigger-enhance', () => {
+    // Trigger the same flow as clicking the Fix with AI button
+    enhanceText();
+});
+*/
 async function enhanceText() {
     const originalText = document.getElementById('originalText').value;
     if (!originalText.trim() || originalText === 'No text selected. Please select some text and try again.') {
@@ -118,4 +137,35 @@ function updateTokenCount() {
     const count = encode(text).length;
     const tokenEl = document.getElementById('tokenCount');
     if (tokenEl) tokenEl.innerText = `Tokens: ${count}`;
+}
+
+// Display provider, model, and cost info
+async function showConfigInfo() {
+    try {
+        const cfg = await ipcRenderer.invoke('get-llm-config');
+        let costInfo = '';
+        if (cfg.provider === 'openai') {
+            // Pricing in USD per 1K tokens
+            const pricing = {
+                'gpt-3.5-turbo': { input: 0.0015, output: 0.002 },
+                'gpt-4': { input: 0.03, output: 0.06 }
+            };
+            const price = pricing[cfg.model] || null;
+            if (price) {
+                costInfo = `OpenAI ${cfg.model} pricing: $${price.input}/1K input, $${price.output}/1K output`;
+            } else {
+                costInfo = `OpenAI ${cfg.model} pricing: See OpenAI docs`;
+            }
+        } else if (cfg.provider === 'ollama' || cfg.provider === 'lmstudio') {
+            costInfo = 'Local model, no per-query cost';
+        } else {
+            costInfo = '';
+        }
+        const infoEl = document.getElementById('configInfo');
+        if (infoEl) {
+            infoEl.innerText = `Provider: ${cfg.provider} | Model: ${cfg.model}${costInfo ? ' | ' + costInfo : ''}`;
+        }
+    } catch (err) {
+        console.error('Error fetching config for display:', err);
+    }
 } 

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, clipboard } from 'electron';
+import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, clipboard, screen } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -29,6 +29,8 @@ let tray = null;
 let isQuitting = false;
 let lastSelectedText = '';
 let settingsWindow = null;
+let iconWindow = null;
+let lastClip = clipboard.readText();
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -47,6 +49,17 @@ function createWindow() {
 
   // Open DevTools for debugging
   mainWindow.webContents.openDevTools({ mode: 'detach' });
+
+  // Show a context menu with 'Fix with AI' on right-click
+  /*
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    const { Menu } = require('electron');
+    const menu = Menu.buildFromTemplate([
+      { label: 'Fix with AI', click: () => mainWindow.webContents.send('trigger-enhance') }
+    ]);
+    menu.popup({ window: mainWindow });
+  });
+  */
 
   mainWindow.on('close', (e) => {
     if (!isQuitting) {
@@ -122,18 +135,45 @@ function simulateCopy() {
   });
 }
 
+function createIconWindow() {
+  if (iconWindow) return;
+  iconWindow = new BrowserWindow({
+    width: 40,
+    height: 40,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    focusable: false,
+    show: false
+  });
+  iconWindow.loadFile(path.join(__dirname, 'icon-popup.html'));
+}
+
+function showIconAtCursor() {
+  if (!iconWindow) createIconWindow();
+  const cursorPos = screen.getCursorScreenPoint();
+  iconWindow.setPosition(cursorPos.x + 10, cursorPos.y + 10);
+  iconWindow.show();
+  // Hide after 2 seconds
+  setTimeout(() => {
+    if (iconWindow) iconWindow.hide();
+  }, 2000);
+}
+
 async function setupHotkey() {
   globalShortcut.register('CommandOrControl+Alt+I', async () => {
     try {
-      // 1. Simulate copy (Cmd/Ctrl+C) to bring the selected text into the clipboard
+      // Show floating icon next to cursor
+      showIconAtCursor();
+
+      // 1. Simulate copy
       await simulateCopy();
-      // 2. Wait briefly for clipboard to update
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      // 3. Read the selected text from the clipboard
+      await new Promise(r => setTimeout(r, 150));
       const selectedText = clipboard.readText();
       lastSelectedText = selectedText;
 
-      // 4. Show the popup and send the selected text to the renderer
       if (mainWindow) {
         mainWindow.show();
         mainWindow.focus();
@@ -158,6 +198,11 @@ ipcMain.handle('enhance-text', async (event, text) => {
 // Provide an IPC method to access the last selected text
 ipcMain.handle('get-selected-text', async () => {
   return lastSelectedText;
+});
+
+// Provide an IPC method to get current LLM config
+ipcMain.handle('get-llm-config', async () => {
+  return llmConfig;
 });
 
 // Stream responses for real-time updates
@@ -188,6 +233,19 @@ ipcMain.on('save-settings', (event, newConfig) => {
     event.sender.send('settings-saved', 'error');
   }
 });
+
+// Poll the clipboard every 500ms
+setInterval(async () => {
+  try {
+    const cur = clipboard.readText();
+    if (cur && cur !== lastClip) {
+      lastClip = cur;
+      showIconAtCursor();         // pop up the icon
+      lastSelectedText = cur;     // store it
+      mainWindow.webContents.send('text-selected', cur);
+    }
+  } catch (e) { /* ignore read errors */ }
+}, 500);
 
 app.whenReady().then(() => {
   createWindow();
