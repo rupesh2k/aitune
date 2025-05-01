@@ -49,9 +49,20 @@ window.addEventListener('DOMContentLoaded', () => {
     const closeBtn = document.getElementById('closeBtn');
     if (closeBtn) {
         closeBtn.addEventListener('click', () => {
+            console.log('DEBUG: closeBtn clicked, sending close-main-window');
             ipcRenderer.send('close-main-window');
         });
     }
+
+    const closeFooterBtn = document.getElementById('closeFooterBtn');
+    if (closeFooterBtn) {
+        closeFooterBtn.addEventListener('click', () => {
+            console.log('DEBUG: closeFooterBtn clicked, sending close-main-window');
+            ipcRenderer.send('close-main-window');
+        });
+    }
+
+    // Voice input functionality removed
 });
 
 // Listen for text selection from main process

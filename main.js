@@ -57,8 +57,7 @@ function createWindow() {
   });
 
   mainWindow.loadFile('popup.html');
-
-  // mainWindow.webContents.openDevTools({ mode: 'detach' }); // removed by default to prevent DevTools console errors
+  mainWindow.webContents.openDevTools({ mode: 'detach' });  // open DevTools for debugging click handlers
 
   // Show a context menu with 'Fix with AI' on right-click
   /*
@@ -259,6 +258,7 @@ setInterval(async () => {
 
 // Listen for close requests from the renderer
 ipcMain.on('close-main-window', () => {
+  console.log('DEBUG: main process received close-main-window, hiding mainWindow');
   if (mainWindow) {
     mainWindow.hide();
   }
