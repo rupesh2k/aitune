@@ -1,4 +1,5 @@
 const { ipcRenderer, clipboard } = require('electron');
+const { encode } = require('gpt-3-encoder');
 
 // Initialize the original text when the window loads
 window.addEventListener('DOMContentLoaded', () => {
@@ -9,6 +10,8 @@ window.addEventListener('DOMContentLoaded', () => {
         // Debugger statement to pause if devtools open
         // debugger;
         document.getElementById('originalText').value = currentText;
+        // Update token count on load
+        updateTokenCount();
     } catch (err) {
         console.error('Error reading clipboard on load:', err);
         document.getElementById('originalText').value = '';
@@ -19,6 +22,9 @@ window.addEventListener('DOMContentLoaded', () => {
     if (fixButton) {
         fixButton.addEventListener('click', enhanceText);
     }
+    // Bind input event on original text to update token count
+    const originalEl = document.getElementById('originalText');
+    originalEl.addEventListener('input', updateTokenCount);
 });
 
 // Listen for text selection from main process
@@ -26,8 +32,10 @@ ipcRenderer.on('text-selected', (event, text) => {
     console.log('DEBUG: Received text-selected event ->', text);
     if (text && text.trim()) {
         document.getElementById('originalText').value = text;
+        updateTokenCount();
     } else {
         document.getElementById('originalText').value = 'No text selected. Please select some text and try again.';
+        updateTokenCount();
     }
 });
 
@@ -102,4 +110,12 @@ function copyOriginal() {
 }
 
 // Expose the enhanceText function globally for popup.html onclick
-window.enhanceText = enhanceText; 
+window.enhanceText = enhanceText;
+
+// Token count updater function
+function updateTokenCount() {
+    const text = document.getElementById('originalText').value || '';
+    const count = encode(text).length;
+    const tokenEl = document.getElementById('tokenCount');
+    if (tokenEl) tokenEl.innerText = `Tokens: ${count}`;
+} 
