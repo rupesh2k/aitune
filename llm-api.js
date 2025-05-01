@@ -16,6 +16,8 @@ class LLMHandler {
             return this.enhanceWithOpenAI(text);
         } else if (this.config.provider === 'ollama') {
             return this.enhanceWithOllama(text);
+        } else if (this.config.provider === 'lmstudio') {
+            return this.enhanceWithLmstudio(text);
         }
         throw new Error('Invalid LLM provider');
     }
@@ -67,6 +69,33 @@ class LLMHandler {
             return data.response;
         } catch (error) {
             console.error('Ollama API error:', error);
+            throw error;
+        }
+    }
+
+    async enhanceWithLmstudio(text) {
+        try {
+            // Send chat completion request to LM Studio endpoint
+            const response = await fetch(this.config.endpoint || 'http://localhost:1234/api/v0/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: this.config.model,
+                    messages: [
+                        { role: 'user', content: text }
+                    ]
+                })
+            });
+            if (!response.ok) {
+                throw new Error(`LM Studio API error: ${response.status} ${response.statusText}`);
+            }
+            const data = await response.json();
+            // Expecting OpenAI-compatible response format
+            return data.choices[0].message.content;
+        } catch (error) {
+            console.error('LM Studio API error:', error);
             throw error;
         }
     }

@@ -1,6 +1,6 @@
 {
-    "provider": "ollama",
-    "apiKey": "",
-    "model": "llama2",
-    "endpoint": "http://127.0.0.1:11434/api/generate"
-} 
+  "provider": "openai",
+  "endpoint": "https://api.openai.com/v1/chat/completions",
+  "model": "gpt-4o-mini",
+  "apiKey": "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"
+}

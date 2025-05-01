@@ -64,7 +64,8 @@ async function enhanceText() {
         ipcRenderer.send('stream-enhance-text', originalText);
     } catch (error) {
         console.error('Error enhancing text:', error);
-        alert('Error enhancing text. Please try again.');
+        // Show the specific error message (e.g., quota exceeded)
+        alert(`Error enhancing text: ${error.message}`);
     }
 }
 

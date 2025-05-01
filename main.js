@@ -28,6 +28,7 @@ let mainWindow = null;
 let tray = null;
 let isQuitting = false;
 let lastSelectedText = '';
+let settingsWindow = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -59,6 +60,26 @@ function createWindow() {
   });
 }
 
+function createSettingsWindow() {
+  if (settingsWindow) {
+    settingsWindow.focus();
+    return;
+  }
+  settingsWindow = new BrowserWindow({
+    width: 400,
+    height: 300,
+    resizable: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  });
+  settingsWindow.loadFile('settings.html');
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
+  });
+}
+
 function createTray() {
   tray = new Tray(path.join(__dirname, 'assets', 'icon.png'));
   const contextMenu = Menu.buildFromTemplate([
@@ -73,7 +94,7 @@ function createTray() {
     {
       label: 'Settings',
       click: () => {
-        // TODO: Open settings window
+        createSettingsWindow();
       }
     },
     {
@@ -151,6 +172,21 @@ ipcMain.on('stream-enhance-text', (event, text) => {
     // Notify renderer of error
     event.sender.send('enhance-text-error', error.message || String(error));
   });
+});
+
+// Handle settings save
+ipcMain.on('save-settings', (event, newConfig) => {
+  // Write to config.json
+  try {
+    fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2));
+    llmConfig = newConfig;
+    llmHandler.config = newConfig;
+    event.sender.send('settings-saved', 'success');
+    if (settingsWindow) settingsWindow.close();
+  } catch (err) {
+    console.error('Error saving settings:', err);
+    event.sender.send('settings-saved', 'error');
+  }
 });
 
 app.whenReady().then(() => {

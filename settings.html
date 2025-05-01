@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Tune Settings</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    label { display: block; margin-top: 10px; }
+    select, input { width: 100%; padding: 6px; margin-top: 4px; }
+    button { margin-top: 20px; padding: 8px 16px; }
+  </style>
+</head>
+<body>
+  <h2>Settings</h2>
+  <label>Provider:
+    <select id="providerSelect">
+      <option value="openai">OpenAI</option>
+      <option value="ollama">Ollama</option>
+      <option value="lmstudio">LM Studio</option>
+    </select>
+  </label>
+  <label>Endpoint URL:
+    <input id="endpointInput" type="text" />
+  </label>
+  <label>Model:
+    <input id="modelInput" type="text" />
+  </label>
+  <label>API Key (if needed):
+    <input id="apiKeyInput" type="text" />
+  </label>
+  <button id="saveBtn">Save</button>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const fs = require('fs');
+    const path = require('path');
+    const configPath = path.join(__dirname, 'config.json');
+
+    // Load existing settings
+    const raw = fs.readFileSync(configPath, 'utf-8');
+    const cfg = JSON.parse(raw);
+    document.getElementById('providerSelect').value = cfg.provider;
+    document.getElementById('endpointInput').value = cfg.endpoint;
+    document.getElementById('modelInput').value = cfg.model;
+    document.getElementById('apiKeyInput').value = cfg.apiKey;
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      const newCfg = {
+        provider: document.getElementById('providerSelect').value,
+        endpoint: document.getElementById('endpointInput').value,
+        model: document.getElementById('modelInput').value,
+        apiKey: document.getElementById('apiKeyInput').value
+      };
+      ipcRenderer.send('save-settings', newCfg);
+    });
+
+    ipcRenderer.on('settings-saved', (event, status) => {
+      alert(status === 'success' ? 'Settings saved!' : 'Error saving settings');
+    });
+  </script>
+</body>
+</html> 
