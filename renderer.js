@@ -3,6 +3,16 @@ const { encode } = require('gpt-3-encoder');
 
 // Initialize the original text when the window loads
 window.addEventListener('DOMContentLoaded', () => {
+    // Add drag event handling for the header bar
+    const headerBar = document.querySelector('.header-bar');
+    if (headerBar) {
+        headerBar.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('header-bar') || e.target.classList.contains('app-title')) {
+                e.preventDefault();
+            }
+        });
+    }
+
     // Load current clipboard content into the original text field
     try {
         const currentText = clipboard.readText();

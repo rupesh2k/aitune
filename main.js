@@ -131,17 +131,28 @@ function createTray() {
   tray.setContextMenu(contextMenu);
 }
 
-// Helper to simulate Ctrl+C via PowerShell
 function simulateCopy() {
-  return new Promise((resolve, reject) => {
+  if (process.platform === 'darwin') {
+    // For Mac
+    exec(
+      `osascript -e 'tell application "System Events" to keystroke "c" using {command down}'`,
+      (error) => {
+        if (error) {
+          console.error('Error simulating copy:', error);
+        }
+      }
+    );
+  } else {
+    // For Windows
     exec(
       `powershell -windowstyle hidden -command "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('^c')"`,
       (error) => {
-        if (error) reject(error);
-        else resolve();
+        if (error) {
+          console.error('Error simulating copy:', error);
+        }
       }
     );
-  });
+  }
 }
 
 function createIconWindow() {
@@ -170,24 +181,54 @@ function showIconAtCursor() {
     if (iconWindow) iconWindow.hide();
   }, 2000);
 }
+/*
+async function getSelectedText() {
+  return new Promise((resolve, reject) => {
+    if (process.platform === 'darwin') {
+      // For Mac, use AppleScript to get selected text
+      exec(
+        `osascript -e 'tell application "System Events" to set selectedText to (get value of attribute "AXSelectedText" of (first process whose frontmost is true))'`,
+        (error, stdout, stderr) => {
+          if (error) {
+            console.error('Error getting selected text:', error);
+            resolve(''); // Return empty string on error
+          } else {
+            resolve(stdout.trim());
+          }
+        }
+      );
+    } else {
+      // For Windows, use clipboard
+      resolve(clipboard.readText());
+    }
+  });
+}*/
 
 async function setupHotkey() {
-  globalShortcut.register('CommandOrControl+Alt+I', async () => {
+  const hotkey = process.platform === 'darwin' ? 'Command+Control+I' : 'CommandOrControl+Alt+I';
+  globalShortcut.register(hotkey, () => {
     try {
-      // Show floating icon next to cursor
-      showIconAtCursor();
-
       // 1. Simulate copy
-      await simulateCopy();
-      await new Promise(r => setTimeout(r, 150));
-      const selectedText = clipboard.readText();
-      lastSelectedText = selectedText;
-
-      if (mainWindow) {
-        mainWindow.show();
-        mainWindow.focus();
-        mainWindow.webContents.send('text-selected', selectedText);
-      }
+      simulateCopy();
+      
+      // 2. Wait a bit for the copy to complete
+      setTimeout(() => {
+        const selectedText = clipboard.readText();
+        if (selectedText && selectedText.trim()) {
+          lastSelectedText = selectedText;
+          if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+            mainWindow.webContents.send('text-selected', selectedText);
+          }
+        } else {
+          // If no text selected, show the window anyway
+          if (mainWindow) {
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        }
+      }, 150);
     } catch (error) {
       console.error('Hotkey handler error:', error);
     }

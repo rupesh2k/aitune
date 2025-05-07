@@ -6,18 +6,20 @@
   "type": "module",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --inspect"
+    "dev": "electron . --inspect=9230"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
     "electron": "^28.0.0",
     "electron-store": "^8.1.0",
-    "openai": "^4.0.0",
+    "gpt-3-encoder": "^1.1.4",
     "node-fetch": "^2.6.9",
-    "gpt-3-encoder": "^1.1.4"
+    "node-global-key-listener": "^0.3.0",
+    "openai": "^4.0.0"
   },
   "devDependencies": {
-    "electron-builder": "^24.0.0"
+    "electron-builder": "^24.0.0",
+    "electron-rebuild": "^3.2.9"
   }
-} 
+}
