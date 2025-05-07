@@ -132,27 +132,31 @@ function createTray() {
 }
 
 function simulateCopy() {
-  if (process.platform === 'darwin') {
-    // For Mac
-    exec(
-      `osascript -e 'tell application "System Events" to keystroke "c" using {command down}'`,
-      (error) => {
-        if (error) {
-          console.error('Error simulating copy:', error);
-        }
-      }
-    );
-  } else {
-    // For Windows
+  console.log('Starting simulateCopy...');
+  return new Promise((resolve, reject) => {
+    if (process.platform === 'darwin') {
+      // For Mac
+      exec(
+        `osascript -e 'tell application "System Events" to keystroke "c" using {command down}'`,
+        (error) => {
+          if (error) {
+            console.error('Error simulating copy:', error); 
+          }
+        })
+    } else {
     exec(
       `powershell -windowstyle hidden -command "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('^c')"`,
       (error) => {
         if (error) {
           console.error('Error simulating copy:', error);
+          reject(error);
+        } else {
+          console.log('Copy simulation successful');
+          resolve();
         }
       }
     );
-  }
+  }});
 }
 
 function createIconWindow() {
@@ -206,33 +210,33 @@ async function getSelectedText() {
 
 async function setupHotkey() {
   const hotkey = process.platform === 'darwin' ? 'Command+Control+I' : 'CommandOrControl+Alt+I';
-  globalShortcut.register(hotkey, () => {
+  globalShortcut.register(hotkey, async () => {
+    console.log('Hotkey pressed: Ctrl + Alt + I');
     try {
-      // 1. Simulate copy
-      simulateCopy();
-      
-      // 2. Wait a bit for the copy to complete
-      setTimeout(() => {
-        const selectedText = clipboard.readText();
-        if (selectedText && selectedText.trim()) {
-          lastSelectedText = selectedText;
-          if (mainWindow) {
-            mainWindow.show();
-            mainWindow.focus();
-            mainWindow.webContents.send('text-selected', selectedText);
-          }
-        } else {
-          // If no text selected, show the window anyway
-          if (mainWindow) {
-            mainWindow.show();
-            mainWindow.focus();
-          }
-        }
-      }, 150);
+      console.log('Simulating copy...');
+      await simulateCopy();
+      console.log('Waiting for clipboard update...');
+      await new Promise(r => setTimeout(r, 500));
+      const selectedText = clipboard.readText();
+      console.log('Selected text from clipboard:', selectedText);
+      if (!selectedText) {
+        console.warn('No text was copied to the clipboard.');
+      }
+      lastSelectedText = selectedText;
+
+      if (mainWindow) {
+        console.log('Showing main window');
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send('text-selected', selectedText);
+      } else {
+        console.warn('Main window is not initialized.');
+      }
     } catch (error) {
       console.error('Hotkey handler error:', error);
     }
   });
+  console.log('Hotkey registered:', hotkey);
 }
 
 // Handle IPC communication

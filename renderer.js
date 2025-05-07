@@ -186,4 +186,29 @@ async function showConfigInfo() {
     } catch (err) {
         console.error('Error fetching config for display:', err);
     }
-} 
+}
+
+// Function to open the aitune popup
+function openAitunePopup(text) {
+    // Logic to open the popup and set the text in the original text area
+    // For example, you might use a modal or a new window
+    console.log("Opening aitune popup with text:", text);
+    // Your popup logic here
+}
+
+// Listen for keydown events
+document.addEventListener('keydown', (event) => {
+    if (event.ctrlKey && event.altKey && event.key === 'I') {
+        // Get the selected text
+        const selectedText = window.getSelection().toString();
+
+        // Copy the selected text to the clipboard
+        navigator.clipboard.writeText(selectedText).then(() => {
+            console.log('Text copied to clipboard:', selectedText);
+            // Open the aitune popup with the copied text
+            openAitunePopup(selectedText);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    }
+}); 
